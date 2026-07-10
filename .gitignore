@@ -1,0 +1,27 @@
+﻿# Dependencies
+node_modules/
+frontend/node_modules/
+
+# Build outputs
+frontend/dist/
+backend/flowreport-api
+
+# Environment files
+.env
+backend/.env
+*.env.local
+
+# Go
+backend/go.sum
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test coverage
+coverage/

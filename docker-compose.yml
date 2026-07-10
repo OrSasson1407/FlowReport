@@ -1,0 +1,58 @@
+﻿services:
+  postgres:
+    image: postgres:16
+    container_name: flowreport-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: flowreport
+    ports:
+      - "5439:5432"
+    volumes:
+      - flowreport_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: flowreport-redis
+    restart: unless-stopped
+    ports:
+      - "6399:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: flowreport-api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_NAME: flowreport
+      DB_SSLMODE: disable
+      JWT_SECRET: flowreport-dev-secret-key-change-in-production
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      PORT: 8081
+    ports:
+      - "8081:8081"
+
+volumes:
+  flowreport_pgdata:

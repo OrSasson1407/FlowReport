@@ -1,0 +1,22 @@
+﻿name: FlowReport CD
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: []
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy notification
+        run: |
+          echo "Deployment pipeline ready."
+          echo "Configure your deployment target in Step 35."
+          echo "Supported targets: Railway, Render, AWS ECS, DigitalOcean"
