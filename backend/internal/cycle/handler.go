@@ -4,6 +4,7 @@ import (
     "net/http"
     "time"
 
+    "github.com/flowreport/backend/internal/auditlog"
     "github.com/flowreport/backend/internal/models"
     "github.com/gin-gonic/gin"
     "github.com/google/uuid"
@@ -67,139 +68,120 @@ func (h *Handler) GetCurrent(c *gin.Context) {
 
 func (h *Handler) Create(c *gin.Context) {
     userRole, _ := c.Get("user_role")
+    userIDStr, _ := c.Get("user_id")
+    userID, _ := uuid.Parse(userIDStr.(string))
     if userRole.(string) != "CEO" && userRole.(string) != "ADMIN" {
         c.JSON(http.StatusForbidden, gin.H{"error": "only CEO can create cycles"})
         return
     }
-
     var req CreateCycleRequest
     if err := c.ShouldBindJSON(&req); err != nil {
         c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
         return
     }
-
     var startsAt, endsAt, deadline time.Time
-    if req.StartsAt != "" {
-        startsAt, _ = time.Parse("2006-01-02", req.StartsAt)
-    }
-    if req.EndsAt != "" {
-        endsAt, _ = time.Parse("2006-01-02", req.EndsAt)
-    }
-    if req.Deadline != "" {
-        deadline, _ = time.Parse("2006-01-02", req.Deadline)
-    }
+    if req.StartsAt != "" { startsAt, _ = time.Parse("2006-01-02", req.StartsAt) }
+    if req.EndsAt   != "" { endsAt,   _ = time.Parse("2006-01-02", req.EndsAt)   }
+    if req.Deadline != "" { deadline, _ = time.Parse("2006-01-02", req.Deadline)  }
 
     cycle := models.ReportCycle{
-        ID:       uuid.New(),
-        Year:     req.Year,
-        WeekNum:  req.WeekNum,
-        StartsAt: startsAt,
-        EndsAt:   endsAt,
-        Deadline: deadline,
-        Status:   "OPEN",
+        ID: uuid.New(), Year: req.Year, WeekNum: req.WeekNum,
+        StartsAt: startsAt, EndsAt: endsAt, Deadline: deadline, Status: "OPEN",
     }
-
     if err := h.db.Create(&cycle).Error; err != nil {
         c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create cycle"})
         return
     }
-
+    auditlog.Log(h.db, userID, "CREATE_CYCLE", "cycle", cycle.ID, "", "OPEN", c.ClientIP())
     c.JSON(http.StatusCreated, cycle)
 }
 
 func (h *Handler) Update(c *gin.Context) {
     userRole, _ := c.Get("user_role")
+    userIDStr, _ := c.Get("user_id")
+    userID, _ := uuid.Parse(userIDStr.(string))
     if userRole.(string) != "CEO" && userRole.(string) != "ADMIN" {
         c.JSON(http.StatusForbidden, gin.H{"error": "only CEO can update cycles"})
         return
     }
-
     id, err := uuid.Parse(c.Param("id"))
     if err != nil {
         c.JSON(http.StatusBadRequest, gin.H{"error": "invalid cycle id"})
         return
     }
-
     var cycle models.ReportCycle
     if err := h.db.First(&cycle, "id = ?", id).Error; err != nil {
         c.JSON(http.StatusNotFound, gin.H{"error": "cycle not found"})
         return
     }
-
     var req UpdateCycleRequest
     if err := c.ShouldBindJSON(&req); err != nil {
         c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
         return
     }
-
-    if req.Status != "" {
-        cycle.Status = req.Status
-    }
-    if req.Deadline != "" {
-        deadline, _ := time.Parse("2006-01-02", req.Deadline)
-        cycle.Deadline = deadline
-    }
-
+    oldStatus := cycle.Status
+    if req.Status != ""   { cycle.Status = req.Status }
+    if req.Deadline != "" { deadline, _ := time.Parse("2006-01-02", req.Deadline); cycle.Deadline = deadline }
     if err := h.db.Save(&cycle).Error; err != nil {
         c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update cycle"})
         return
     }
-
+    auditlog.Log(h.db, userID, "UPDATE_CYCLE", "cycle", cycle.ID, oldStatus, cycle.Status, c.ClientIP())
     c.JSON(http.StatusOK, cycle)
 }
 
 func (h *Handler) Lock(c *gin.Context) {
     userRole, _ := c.Get("user_role")
+    userIDStr, _ := c.Get("user_id")
+    userID, _ := uuid.Parse(userIDStr.(string))
     if userRole.(string) != "CEO" && userRole.(string) != "ADMIN" {
         c.JSON(http.StatusForbidden, gin.H{"error": "only CEO can lock cycles"})
         return
     }
-
     id, err := uuid.Parse(c.Param("id"))
     if err != nil {
         c.JSON(http.StatusBadRequest, gin.H{"error": "invalid cycle id"})
         return
     }
-
     var cycle models.ReportCycle
     if err := h.db.First(&cycle, "id = ?", id).Error; err != nil {
         c.JSON(http.StatusNotFound, gin.H{"error": "cycle not found"})
         return
     }
-
+    oldStatus := cycle.Status
     cycle.Status = "LOCKED"
     if err := h.db.Save(&cycle).Error; err != nil {
         c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to lock cycle"})
         return
     }
-
+    auditlog.Log(h.db, userID, "LOCK_CYCLE", "cycle", cycle.ID, oldStatus, "LOCKED", c.ClientIP())
     c.JSON(http.StatusOK, cycle)
 }
 
 func (h *Handler) Unlock(c *gin.Context) {
     userRole, _ := c.Get("user_role")
+    userIDStr, _ := c.Get("user_id")
+    userID, _ := uuid.Parse(userIDStr.(string))
     if userRole.(string) != "CEO" && userRole.(string) != "ADMIN" {
         c.JSON(http.StatusForbidden, gin.H{"error": "only CEO can unlock cycles"})
         return
     }
-
     id, err := uuid.Parse(c.Param("id"))
     if err != nil {
         c.JSON(http.StatusBadRequest, gin.H{"error": "invalid cycle id"})
         return
     }
-
     var cycle models.ReportCycle
     if err := h.db.First(&cycle, "id = ?", id).Error; err != nil {
         c.JSON(http.StatusNotFound, gin.H{"error": "cycle not found"})
         return
     }
-
+    oldStatus := cycle.Status
     cycle.Status = "OPEN"
     if err := h.db.Save(&cycle).Error; err != nil {
         c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to unlock cycle"})
         return
     }
-
+    auditlog.Log(h.db, userID, "UNLOCK_CYCLE", "cycle", cycle.ID, oldStatus, "OPEN", c.ClientIP())
     c.JSON(http.StatusOK, cycle)
 }

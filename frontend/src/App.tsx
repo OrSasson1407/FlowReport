@@ -5,6 +5,7 @@ import EmployeeDashboard from "./components/EmployeeDashboard";
 import ManagerDashboard from "./components/ManagerDashboard";
 import ExecutiveDashboard from "./components/ExecutiveDashboard";
 import AuditLogViewer from "./components/AuditLogViewer";
+import CycleHistory from "./components/CycleHistory";
 import LoginPage from "./pages/LoginPage";
 import { authApi } from "./api/auth";
 import { usersApi, BackendUser } from "./api/users";
@@ -55,7 +56,7 @@ export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [usersMap, setUsersMap] = useState<Record<string, User>>({});
   const [activePersona, setActivePersona] = useState<User | null>(null);
-  const [currentView, setCurrentView] = useState<"employee" | "manager" | "executive" | "audit">("employee");
+  const [currentView, setCurrentView] = useState<"employee" | "manager" | "executive" | "audit" | "history">("employee");
   const [deptMetrics, setDeptMetrics] = useState<DepartmentMetrics[]>([]);
   const [blockersList] = useState<EscalatedBlocker[]>(ESCALATED_BLOCKERS);
   const [currentCycle, setCurrentCycle] = useState<FrontendCycle | null>(null);
@@ -296,8 +297,10 @@ export default function App() {
             />
           )}
           {currentView === "audit" && <AuditLogViewer />}
+          {currentView === "history" && <CycleHistory />}
         </main>
       </div>
     </div>
   );
 }
+

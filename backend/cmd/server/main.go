@@ -99,6 +99,7 @@ func main() {
             {
                 metricsRoutes.GET("/departments", metricsHandler.DepartmentMetrics)
                 metricsRoutes.GET("/org-health", metricsHandler.OrgHealth)
+            metricsRoutes.GET("/cycle-history", metricsHandler.CycleHistory)
             }
             notifications := protected.Group("/notifications")
             {
@@ -132,3 +133,4 @@ func main() {
         log.Fatalf("Failed to start server: %v", err)
     }
 }
+

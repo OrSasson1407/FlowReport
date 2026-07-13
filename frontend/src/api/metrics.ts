@@ -25,6 +25,22 @@ export interface OrgHealth {
   cycle_id: string;
 }
 
+export interface CycleHistoryItem {
+  cycle_id: string;
+  year: number;
+  week_num: number;
+  status: string;
+  total_employees: number;
+  submitted_count: number;
+  approved_count: number;
+  compliance_rate: number;
+}
+
+export interface CycleHistoryResponse {
+  data: CycleHistoryItem[];
+  count: number;
+}
+
 export const metricsApi = {
   departments: (cycleId?: string): Promise<DepartmentMetricsResponse> => {
     const query = cycleId ? `?cycle_id=${cycleId}` : '';
@@ -34,4 +50,6 @@ export const metricsApi = {
     const query = cycleId ? `?cycle_id=${cycleId}` : '';
     return api.get<OrgHealth>(`/metrics/org-health${query}`);
   },
+  cycleHistory: (): Promise<CycleHistoryResponse> =>
+    api.get<CycleHistoryResponse>('/metrics/cycle-history'),
 };

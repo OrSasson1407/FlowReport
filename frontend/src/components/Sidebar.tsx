@@ -1,9 +1,9 @@
-﻿import { FileText, ClipboardList, TrendingUp, UserCheck, Shield } from 'lucide-react';
+﻿import { FileText, ClipboardList, TrendingUp, UserCheck, Shield, History } from 'lucide-react';
 import type { User } from '../types';
 
 interface SidebarProps {
-  currentView: 'employee' | 'manager' | 'executive' | 'audit';
-  onViewChange: (view: 'employee' | 'manager' | 'executive' | 'audit') => void;
+  currentView: 'employee' | 'manager' | 'executive' | 'audit' | 'history';
+  onViewChange: (view: 'employee' | 'manager' | 'executive' | 'audit' | 'history') => void;
   activePersona: User;
   onPersonaChange: (userId: string) => void;
   allPersonas: Record<string, User>;
@@ -18,6 +18,7 @@ export default function Sidebar({
     { id: 'manager' as const, label: 'Manager Review Queue', description: 'Team Synthesis & Revisions', icon: ClipboardList, roles: ['MANAGER', 'CEO'] },
     { id: 'executive' as const, label: 'Executive Command Center', description: 'Macro Heatmaps & Compliance', icon: TrendingUp, roles: ['CEO', 'MANAGER'] },
     { id: 'audit' as const, label: 'Audit Log', description: 'System Activity Feed', icon: Shield, roles: ['CEO', 'ADMIN'] },
+    { id: 'history' as const, label: 'Cycle History', description: 'Multi-week Compliance', icon: History, roles: ['CEO', 'ADMIN'] },
   ];
 
   const visibleTabs = tabs.filter((t) => t.roles.includes(activePersona.role));
@@ -121,3 +122,4 @@ export default function Sidebar({
     </aside>
   );
 }
+
