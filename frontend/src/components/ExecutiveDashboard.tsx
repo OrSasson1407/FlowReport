@@ -1,5 +1,5 @@
 ﻿import React, { useState } from 'react';
-import { TrendingUp, AlertOctagon, Download, Lock, CheckCircle, ShieldAlert, Mail, Layers, ExternalLink, Calendar, Users, BarChart3, Clock } from 'lucide-react';
+import { TrendingUp, AlertOctagon, Download, Lock, ShieldAlert, Mail, Layers, ExternalLink, Calendar, Users, BarChart3, Clock } from 'lucide-react';
 import { DepartmentMetrics, EscalatedBlocker } from '../types';
 
 interface ExecutiveDashboardProps {
@@ -17,7 +17,7 @@ export default function ExecutiveDashboard({
 }: ExecutiveDashboardProps) {
   const [activeTab, setActiveTab] = useState<'overview' | 'blockers' | 'compliance'>('overview');
   const [forceReminderSent, setForceReminderSent] = useState<string | null>(null);
-  const [exportModal, setExportModal] = useState<'pdf' | 'excel' | null>(null);
+
 
   // Overall calculations
   const totalDepartments = departmentMetrics.length;
@@ -280,19 +280,23 @@ export default function ExecutiveDashboard({
 
             <div className="flex flex-col gap-2 mt-2">
               <button
-                onClick={() => setExportModal('pdf')}
-                className="w-full bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs py-2.5 px-4 rounded-lg flex items-center justify-center gap-2 shadow-2xs cursor-pointer transition-all"
+                disabled
+                title="Export is not implemented yet"
+                className="w-full bg-slate-100 text-slate-400 border border-slate-200 font-semibold text-xs py-2.5 px-4 rounded-lg flex items-center justify-center gap-2 cursor-not-allowed"
               >
                 <Download className="w-4 h-4" />
                 <span>Export Global Company Report (PDF)</span>
+                <span className="text-[9px] uppercase tracking-wider bg-slate-200 text-slate-500 px-1.5 py-0.5 rounded">Coming soon</span>
               </button>
 
               <button
-                onClick={() => setExportModal('excel')}
-                className="w-full bg-white hover:bg-slate-50 text-slate-800 border border-slate-200 font-semibold text-xs py-2.5 px-4 rounded-lg flex items-center justify-center gap-2 shadow-3xs cursor-pointer transition-all"
+                disabled
+                title="Export is not implemented yet"
+                className="w-full bg-slate-100 text-slate-400 border border-slate-200 font-semibold text-xs py-2.5 px-4 rounded-lg flex items-center justify-center gap-2 cursor-not-allowed"
               >
-                <Download className="w-4 h-4 text-slate-500" />
+                <Download className="w-4 h-4" />
                 <span>Export Excel Metric Database (XLSX)</span>
+                <span className="text-[9px] uppercase tracking-wider bg-slate-200 text-slate-500 px-1.5 py-0.5 rounded">Coming soon</span>
               </button>
             </div>
           </div>
@@ -300,127 +304,6 @@ export default function ExecutiveDashboard({
         </div>
 
       </div>
-
-      {/* Export Format Simulations Modals */}
-      {exportModal && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in">
-          <div className="bg-white rounded-xl border border-slate-200 shadow-xl max-w-xl w-full max-h-[90vh] flex flex-col overflow-hidden animate-slide-up">
-            
-            {/* Modal header */}
-            <div className="p-5 border-b border-slate-100 bg-[#1e3a8a] text-white flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Download className="w-5 h-5 text-white" />
-                <span className="font-bold text-sm uppercase tracking-wider">
-                  {exportModal === 'pdf' ? 'PDF Compilation Pipe' : 'Structured Excel Analytical Template'}
-                </span>
-              </div>
-              <button
-                onClick={() => setExportModal(null)}
-                className="text-white hover:text-blue-100 text-xs bg-white/10 hover:bg-white/20 px-2.5 py-1 rounded"
-              >
-                Close
-              </button>
-            </div>
-
-            {/* Modal body */}
-            <div className="p-6 overflow-y-auto space-y-4">
-              {exportModal === 'pdf' ? (
-                <>
-                  <div className="p-4 bg-blue-50 border border-blue-150 rounded-lg text-xs text-[#1e3a8a] flex flex-col gap-1">
-                    <span className="font-bold">SYSTEM WORKER PROCESS PIPELINE:</span>
-                    <span>Asynchronous worker cluster compiling database rows to PDF binaries using <strong>WeasyPrint</strong> headless compiler.</span>
-                  </div>
-
-                  <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider mt-2">CSS Paged Media Standards applied:</h4>
-                  
-                  <div className="font-mono text-[11px] bg-slate-950 text-emerald-400 p-4 rounded-lg overflow-x-auto space-y-2">
-                    <div>{`/* Page breaks managed using explicit template rules */`}</div>
-                    <div>{`@media print {`}</div>
-                    <div className="pl-4">{`h1, h2, h3, .report-header { page-break-inside: avoid; }`}</div>
-                    <div className="pl-4">{`.department-section { page-break-after: always; }`}</div>
-                    <div className="pl-4">{`.blocker-row { page-break-inside: avoid; }`}</div>
-                    <div>{`}`}</div>
-                  </div>
-
-                  <div className="border border-slate-200 rounded-lg p-4 space-y-3">
-                    <div className="flex justify-between items-center border-b border-slate-100 pb-2">
-                      <span className="text-xs font-bold text-slate-700">Export preview: Week 26 Rollup</span>
-                      <span className="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-mono font-bold">2 Pages total</span>
-                    </div>
-                    <div className="bg-slate-50 border border-slate-150 rounded p-3 text-[11px] text-slate-600 space-y-2.5">
-                      <div className="flex justify-between border-b border-slate-200 pb-1.5 font-bold text-slate-800">
-                        <span>FLOWREPORT CORP MASTER DIRECTIVE</span>
-                        <span>CONFIDENTIAL - INTERNAL ONLY</span>
-                      </div>
-                      <div>
-                        <strong>Overall compliance rate:</strong> 94% with 4 out of 4 departments responding.
-                      </div>
-                      <div>
-                        <strong>Active Company Blockers:</strong> DevOps compiler delay, recruitment backfill compensation hold.
-                      </div>
-                    </div>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="p-4 bg-emerald-50 border border-emerald-150 rounded-lg text-xs text-emerald-800 flex flex-col gap-1">
-                    <span className="font-bold">TABULAR EXCEL GENERATOR (Go-XLSX / openpyxl):</span>
-                    <span>Compiles metrics databases with custom spreadsheet equations and conditional color rules.</span>
-                  </div>
-
-                  <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider mt-2">Injected Formulas and Validation Rules:</h4>
-                  
-                  <div className="border border-slate-150 rounded-lg overflow-hidden text-xs">
-                    <div className="grid grid-cols-3 bg-slate-50 font-bold border-b border-slate-150 p-2 text-slate-600">
-                      <span>Target Tab</span>
-                      <span>Contained Columns</span>
-                      <span>Injected Rule / Formula</span>
-                    </div>
-                    
-                    <div className="divide-y divide-slate-100">
-                      <div className="grid grid-cols-3 p-2 text-slate-700">
-                        <span className="font-semibold text-slate-800">Executive Summary Sheet</span>
-                        <span className="text-slate-500 text-[11px]">Dept Code, FTE count, Compliance Rate %, Active Blockers, Health Index</span>
-                        <span className="font-mono text-[11px] bg-slate-50 p-1 rounded border border-slate-100 text-[#1e3a8a]">
-                          AVERAGE(), CONDITIONAL COLOR MAP (Red if &lt; 80%)
-                        </span>
-                      </div>
-
-                      <div className="grid grid-cols-3 p-2 text-slate-700">
-                        <span className="font-semibold text-slate-800">Granular Blocker Log</span>
-                        <span className="text-slate-500 text-[11px]">User ID, Team Context, Blocker Text, Age Duration (Days), Status</span>
-                        <span className="font-mono text-[11px] bg-slate-50 p-1 rounded border border-slate-100 text-[#1e3a8a]">
-                          DAYS(), Highlight substring 'CRITICAL' in cell value
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="p-3 bg-amber-50 border border-amber-200 text-amber-900 rounded-lg text-xs">
-                    <strong>Notice:</strong> This spreadsheet contains live macro components that automatically update when opened in Microsoft Excel.
-                  </div>
-                </>
-              )}
-
-              {/* Simulated download success triggers */}
-              <div className="flex justify-end pt-2 border-t border-slate-100">
-                <button
-                  onClick={() => {
-                    alert(`Your mock ${exportModal === 'pdf' ? 'Executive PDF Report' : 'Excel Metrics Workbook'} file has been successfully compiled and saved to downloads!`);
-                    setExportModal(null);
-                  }}
-                  className="bg-[#1e3a8a] hover:bg-blue-800 text-white font-bold text-xs px-4 py-2 rounded-lg flex items-center gap-1 cursor-pointer"
-                >
-                  <CheckCircle className="w-4 h-4" />
-                  <span>Download file</span>
-                </button>
-              </div>
-
-            </div>
-
-          </div>
-        </div>
-      )}
 
     </div>
   );

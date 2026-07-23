@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Sidebar from "./components/Sidebar";
 import Header from "./components/Header";
 import EmployeeDashboard from "./components/EmployeeDashboard";
@@ -8,13 +8,13 @@ import AuditLogViewer from "./components/AuditLogViewer";
 import CycleHistory from "./components/CycleHistory";
 import LoginPage from "./pages/LoginPage";
 import { authApi } from "./api/auth";
+import { isImpersonating as checkIsImpersonating, startImpersonation, endImpersonation } from "./api/client";
 import { usersApi, BackendUser } from "./api/users";
 import { reportsApi } from "./api/reports";
-import { metricsApi, DepartmentMetric } from "./api/metrics";
+import { metricsApi, DepartmentMetric, BlockerItem } from "./api/metrics";
 import { notificationsApi, BackendNotification } from "./api/notifications";
 import { cyclesApi, ReportCycle } from "./api/cycles";
 import { useReport } from "./hooks/useReport";
-import { ESCALATED_BLOCKERS } from "./data";
 import type { User, Report, DepartmentMetrics, EscalatedBlocker, AppNotification, ReportCycle as FrontendCycle } from "./types";
 
 function backendUserToFrontend(u: BackendUser): User {
@@ -43,6 +43,14 @@ function backendNotifToFrontend(n: BackendNotification): AppNotification {
   };
 }
 
+function backendBlockerToFrontend(b: BlockerItem): EscalatedBlocker {
+  return {
+    id: b.id, department: b.department, title: b.title,
+    description: b.description, owner: b.owner,
+    daysActive: b.days_active, isCritical: b.is_critical,
+  };
+}
+
 function backendCycleToFrontend(c: ReportCycle): FrontendCycle {
   return {
     id: c.id, year: c.year, weekNumber: c.week_num,
@@ -54,11 +62,12 @@ function backendCycleToFrontend(c: ReportCycle): FrontendCycle {
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [impersonating, setImpersonating] = useState(false);
   const [usersMap, setUsersMap] = useState<Record<string, User>>({});
   const [activePersona, setActivePersona] = useState<User | null>(null);
   const [currentView, setCurrentView] = useState<"employee" | "manager" | "executive" | "audit" | "history">("employee");
   const [deptMetrics, setDeptMetrics] = useState<DepartmentMetrics[]>([]);
-  const [blockersList] = useState<EscalatedBlocker[]>(ESCALATED_BLOCKERS);
+  const [blockersList, setBlockersList] = useState<EscalatedBlocker[]>([]);
   const [currentCycle, setCurrentCycle] = useState<FrontendCycle | null>(null);
   const [currentCycleId, setCurrentCycleId] = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState("All changes synced");
@@ -71,6 +80,7 @@ export default function App() {
 
   useEffect(() => {
     if (authApi.isAuthenticated()) setIsAuthenticated(true);
+    setImpersonating(checkIsImpersonating());
   }, []);
 
   useEffect(() => {
@@ -123,6 +133,9 @@ export default function App() {
     metricsApi.departments().then((res) => {
       setDeptMetrics(res.data.map(backendMetricToFrontend));
     }).catch(console.error);
+    metricsApi.blockers().then((res) => {
+      setBlockersList(res.data.map(backendBlockerToFrontend));
+    }).catch(console.error);
   }, [isAuthenticated, currentView]);
 
   const addNotification = useCallback(async (
@@ -142,13 +155,24 @@ export default function App() {
 
   const handleLoginSuccess = () => setIsAuthenticated(true);
 
-  const handlePersonaChange = (userId: string) => {
-    const selected = usersMap[userId];
-    if (!selected) return;
-    setActivePersona(selected);
-    if (selected.role === "EMPLOYEE") setCurrentView("employee");
-    else if (selected.role === "MANAGER") setCurrentView("manager");
-    else if (selected.role === "CEO") setCurrentView("executive");
+  const handleLogout = () => {
+    authApi.logout();
+    setIsAuthenticated(false);
+  };
+
+  const handleImpersonate = async (userId: string) => {
+    try {
+      const res = await usersApi.impersonate(userId);
+      startImpersonation(res.token);
+      window.location.reload();
+    } catch (e: any) {
+      await addNotification("ALERT", "View As Failed", e.message);
+    }
+  };
+
+  const handleReturnToSelf = () => {
+    endImpersonation();
+    window.location.reload();
   };
 
   const handleSaveReport = async (updatedReport: Report) => {
@@ -254,8 +278,10 @@ export default function App() {
         currentView={currentView as any}
         onViewChange={(v) => setCurrentView(v as any)}
         activePersona={activePersona}
-        onPersonaChange={handlePersonaChange}
         allPersonas={usersMap}
+        isImpersonating={impersonating}
+        onImpersonate={handleImpersonate}
+        onReturnToSelf={handleReturnToSelf}
       />
       <div className="flex-1 flex flex-col h-full overflow-hidden">
         <Header
@@ -267,6 +293,7 @@ export default function App() {
           onMarkNotificationRead={handleMarkNotificationRead}
           onMarkAllNotificationsRead={handleMarkAllRead}
           onClearNotifications={handleClearNotifications}
+          onLogout={handleLogout}
         />
         <main className="flex-1 overflow-hidden flex flex-col">
           {currentView === "employee" && (
@@ -303,4 +330,3 @@ export default function App() {
     </div>
   );
 }
-

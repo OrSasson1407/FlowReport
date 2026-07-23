@@ -1,4 +1,4 @@
-﻿const API_BASE = 'http://localhost:8081/v1';
+const API_BASE = 'http://localhost:8081/v1';
 
 function getToken(): string | null {
   return localStorage.getItem('flowreport_token');
@@ -10,6 +10,30 @@ export function setToken(token: string): void {
 
 export function clearToken(): void {
   localStorage.removeItem('flowreport_token');
+}
+
+const ADMIN_TOKEN_KEY = 'flowreport_admin_token';
+
+// Swaps in a token issued for another user (via the CEO/ADMIN-only
+// impersonation endpoint), stashing the original admin token so we can
+// return to it later. Replaces the old mock-era persona switcher, which
+// changed the displayed user client-side with no real auth involved.
+export function startImpersonation(newToken: string): void {
+  const current = getToken();
+  if (current) localStorage.setItem(ADMIN_TOKEN_KEY, current);
+  setToken(newToken);
+}
+
+export function isImpersonating(): boolean {
+  return localStorage.getItem(ADMIN_TOKEN_KEY) !== null;
+}
+
+export function endImpersonation(): void {
+  const original = localStorage.getItem(ADMIN_TOKEN_KEY);
+  if (original) {
+    setToken(original);
+    localStorage.removeItem(ADMIN_TOKEN_KEY);
+  }
 }
 
 async function request<T>(

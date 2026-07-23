@@ -1,4 +1,4 @@
-export type UserRole = 'EMPLOYEE' | 'MANAGER' | 'CEO';
+export type UserRole = 'EMPLOYEE' | 'MANAGER' | 'CEO' | 'ADMIN';
 
 export type ReportStatus = 'DRAFT' | 'SUBMITTED' | 'APPROVED' | 'REVISION_REQUESTED';
 

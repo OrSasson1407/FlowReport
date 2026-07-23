@@ -1,6 +1,9 @@
-﻿package config
+package config
 
-import "os"
+import (
+    "log"
+    "os"
+)
 
 type Config struct {
     DBHost     string
@@ -21,6 +24,11 @@ type Config struct {
 }
 
 func Load() *Config {
+    jwtSecret := os.Getenv("JWT_SECRET")
+    if jwtSecret == "" {
+        log.Fatal("JWT_SECRET environment variable is required and must not be empty. Set it in backend\\.env before starting the server.")
+    }
+
     return &Config{
         DBHost:     getEnv("DB_HOST", "localhost"),
         DBPort:     getEnv("DB_PORT", "5432"),
@@ -28,7 +36,7 @@ func Load() *Config {
         DBPassword: getEnv("DB_PASSWORD", "postgres"),
         DBName:     getEnv("DB_NAME", "flowreport"),
         DBSSLMode:  getEnv("DB_SSLMODE", "disable"),
-        JWTSecret:  getEnv("JWT_SECRET", "changeme-super-secret-key"),
+        JWTSecret:  jwtSecret,
         Port:       getEnv("PORT", "8081"),
         RedisHost:  getEnv("REDIS_HOST", "localhost"),
         RedisPort:  getEnv("REDIS_PORT", "6399"),

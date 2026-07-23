@@ -1,13 +1,13 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import { authApi } from "../api/auth";
 
 interface LoginPageProps {
-  onLoginSuccess: (user: any, token: string) => void;
+  onLoginSuccess: () => void;
 }
 
 export default function LoginPage({ onLoginSuccess }: LoginPageProps) {
-  const [email, setEmail] = useState("admin@flowreport.com");
-  const [password, setPassword] = useState("password123");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -16,8 +16,8 @@ export default function LoginPage({ onLoginSuccess }: LoginPageProps) {
     setError("");
     setLoading(true);
     try {
-      const response = await authApi.login(email, password);
-      onLoginSuccess(response.user, response.token);
+      await authApi.login(email, password);
+      onLoginSuccess();
     } catch (err: any) {
       setError(err.message || "Login failed");
     } finally {

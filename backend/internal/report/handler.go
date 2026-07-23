@@ -1,4 +1,4 @@
-﻿package report
+package report
 
 import (
     "net/http"
@@ -63,6 +63,11 @@ func (h *Handler) Create(c *gin.Context) {
         Status:           models.StatusDraft,
     }
     if err := h.db.Create(&report).Error; err != nil {
+        var existing models.Report
+        if lookupErr := h.db.Where("user_id = ? AND cycle_id = ?", userID, cycleID).First(&existing).Error; lookupErr == nil {
+            c.JSON(http.StatusOK, existing)
+            return
+        }
         c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create report"})
         return
     }
@@ -211,7 +216,6 @@ func (h *Handler) Submit(c *gin.Context) {
         return
     }
 
-    // Send email async
     go func() {
         var user models.User
         if err := h.db.First(&user, "id = ?", userID).Error; err == nil {
@@ -219,7 +223,6 @@ func (h *Handler) Submit(c *gin.Context) {
             if err := h.db.First(&cycle, "id = ?", report.CycleID).Error; err == nil {
                 weekNum := strconv.Itoa(cycle.WeekNum)
                 if err := h.email.SendReportSubmitted(user.Email, user.FirstName, weekNum); err != nil {
-                    // log but don't fail
                 }
             }
         }
@@ -265,7 +268,6 @@ func (h *Handler) Approve(c *gin.Context) {
         return
     }
 
-    // Send email async
     go func() {
         var owner models.User
         if err := h.db.First(&owner, "id = ?", report.UserID).Error; err == nil {

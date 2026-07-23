@@ -1,4 +1,4 @@
-﻿package models
+package models
 
 import (
     "time"
@@ -56,9 +56,9 @@ const (
 
 type Report struct {
     ID               uuid.UUID      `gorm:"type:uuid;primaryKey" json:"id"`
-    UserID           uuid.UUID      `gorm:"type:uuid;not null;index" json:"user_id"`
+    UserID           uuid.UUID      `gorm:"type:uuid;not null;index;uniqueIndex:idx_reports_user_cycle" json:"user_id"`
     User             User           `gorm:"foreignKey:UserID" json:"user,omitempty"`
-    CycleID          uuid.UUID      `gorm:"type:uuid;not null;index" json:"cycle_id"`
+    CycleID          uuid.UUID      `gorm:"type:uuid;not null;index;uniqueIndex:idx_reports_user_cycle" json:"cycle_id"`
     Cycle            ReportCycle    `gorm:"foreignKey:CycleID" json:"cycle,omitempty"`
     CompletedContent string         `gorm:"type:text" json:"completed_content"`
     WorkingOnContent string         `gorm:"type:text" json:"working_on_content"`

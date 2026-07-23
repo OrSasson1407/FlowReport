@@ -1,4 +1,4 @@
-﻿services:
+services:
   postgres:
     image: postgres:16
     container_name: flowreport-db
@@ -51,6 +51,8 @@
       REDIS_HOST: redis
       REDIS_PORT: 6379
       PORT: 8081
+
+      GIN_MODE: release
     ports:
       - "8081:8081"
 

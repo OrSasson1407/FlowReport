@@ -41,6 +41,21 @@ export interface CycleHistoryResponse {
   count: number;
 }
 
+export interface BlockerItem {
+  id: string;
+  department: string;
+  title: string;
+  description: string;
+  owner: string;
+  days_active: number;
+  is_critical: boolean;
+}
+
+export interface BlockersResponse {
+  data: BlockerItem[];
+  count: number;
+}
+
 export const metricsApi = {
   departments: (cycleId?: string): Promise<DepartmentMetricsResponse> => {
     const query = cycleId ? `?cycle_id=${cycleId}` : '';
@@ -52,4 +67,8 @@ export const metricsApi = {
   },
   cycleHistory: (): Promise<CycleHistoryResponse> =>
     api.get<CycleHistoryResponse>('/metrics/cycle-history'),
+  blockers: (cycleId?: string): Promise<BlockersResponse> => {
+    const query = cycleId ? `?cycle_id=${cycleId}` : '';
+    return api.get<BlockersResponse>(`/metrics/blockers${query}`);
+  },
 };

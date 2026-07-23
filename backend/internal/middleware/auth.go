@@ -1,8 +1,7 @@
-﻿package middleware
+package middleware
 
 import (
     "net/http"
-    "os"
     "strings"
 
     "github.com/flowreport/backend/internal/cache"
@@ -10,15 +9,15 @@ import (
     "github.com/golang-jwt/jwt/v5"
 )
 
-func AuthRequired() gin.HandlerFunc {
-    return authMiddleware(nil)
+func AuthRequired(jwtSecret string) gin.HandlerFunc {
+    return authMiddleware(nil, jwtSecret)
 }
 
-func AuthRequiredWithCache(c *cache.Cache) gin.HandlerFunc {
-    return authMiddleware(c)
+func AuthRequiredWithCache(c *cache.Cache, jwtSecret string) gin.HandlerFunc {
+    return authMiddleware(c, jwtSecret)
 }
 
-func authMiddleware(c *cache.Cache) gin.HandlerFunc {
+func authMiddleware(c *cache.Cache, jwtSecret string) gin.HandlerFunc {
     return func(ctx *gin.Context) {
         authHeader := ctx.GetHeader("Authorization")
         if authHeader == "" {
@@ -45,16 +44,11 @@ func authMiddleware(c *cache.Cache) gin.HandlerFunc {
             }
         }
 
-        secret := os.Getenv("JWT_SECRET")
-        if secret == "" {
-            secret = "changeme-super-secret-key"
-        }
-
         token, err := jwt.Parse(tokenStr, func(token *jwt.Token) (interface{}, error) {
             if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
                 return nil, jwt.ErrSignatureInvalid
             }
-            return []byte(secret), nil
+            return []byte(jwtSecret), nil
         })
 
         if err != nil || !token.Valid {

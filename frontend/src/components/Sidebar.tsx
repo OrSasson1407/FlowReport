@@ -1,16 +1,18 @@
-﻿import { FileText, ClipboardList, TrendingUp, UserCheck, Shield, History } from 'lucide-react';
+import { FileText, ClipboardList, TrendingUp, UserCheck, Shield, History, LogIn, RotateCcw } from 'lucide-react';
 import type { User } from '../types';
 
 interface SidebarProps {
   currentView: 'employee' | 'manager' | 'executive' | 'audit' | 'history';
   onViewChange: (view: 'employee' | 'manager' | 'executive' | 'audit' | 'history') => void;
   activePersona: User;
-  onPersonaChange: (userId: string) => void;
   allPersonas: Record<string, User>;
+  isImpersonating: boolean;
+  onImpersonate: (userId: string) => void;
+  onReturnToSelf: () => void;
 }
 
 export default function Sidebar({
-  currentView, onViewChange, activePersona, onPersonaChange, allPersonas,
+  currentView, onViewChange, activePersona, allPersonas, isImpersonating, onImpersonate, onReturnToSelf,
 }: SidebarProps) {
 
   const tabs = [
@@ -68,17 +70,36 @@ export default function Sidebar({
           })}
         </div>
 
-        <div className="flex flex-col gap-1.5">
-          <p className="text-[11px] font-semibold text-slate-400 tracking-wider uppercase px-2 mb-1">Team Members</p>
-          {Object.values(allPersonas).map((user) => {
-            const isActive = user.id === activePersona.id;
-            return (
+        {isImpersonating ? (
+          <div className="flex flex-col gap-2 px-1">
+            <p className="text-[11px] font-semibold text-amber-600 tracking-wider uppercase px-1 mb-1">View As Mode</p>
+            <div className="flex items-center gap-2.5 bg-amber-50 border border-amber-200 p-2.5 rounded-lg">
+              <div className="w-6 h-6 rounded-full bg-amber-400 flex items-center justify-center text-white text-[10px] font-bold shrink-0">
+                {activePersona.firstName[0]}{activePersona.lastName[0]}
+              </div>
+              <div className="flex flex-col min-w-0 flex-1">
+                <span className="text-[11px] font-semibold text-amber-900 truncate leading-none mb-0.5">
+                  Viewing as {activePersona.firstName} {activePersona.lastName}
+                </span>
+                <span className="text-[10px] text-amber-700 truncate">{roleLabel(activePersona.role)}</span>
+              </div>
+            </div>
+            <button
+              onClick={onReturnToSelf}
+              className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 transition-all"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              Return to my account
+            </button>
+          </div>
+        ) : (activePersona.role === 'CEO' || activePersona.role === 'ADMIN') && (
+          <div className="flex flex-col gap-1.5">
+            <p className="text-[11px] font-semibold text-slate-400 tracking-wider uppercase px-2 mb-1">View As (Admin)</p>
+            {Object.values(allPersonas).filter((u) => u.id !== activePersona.id).map((user) => (
               <button
                 key={user.id}
-                onClick={() => onPersonaChange(user.id)}
-                className={`flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-left transition-all duration-150 ${
-                  isActive ? 'bg-blue-50 border border-blue-100' : 'hover:bg-slate-50'
-                }`}
+                onClick={() => onImpersonate(user.id)}
+                className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-left transition-all duration-150 hover:bg-slate-50"
               >
                 <div className={`w-6 h-6 rounded-full flex items-center justify-center text-white text-[10px] font-bold shrink-0 ${
                   user.role === 'CEO' ? 'bg-purple-500' : user.role === 'MANAGER' ? 'bg-blue-500' : 'bg-slate-400'
@@ -91,17 +112,20 @@ export default function Sidebar({
                   </span>
                   <span className="text-[10px] text-slate-500 truncate">{roleLabel(user.role)}</span>
                 </div>
-                {isActive && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0" />}
+                <LogIn className="ml-auto w-3.5 h-3.5 text-slate-300 shrink-0" />
               </button>
-            );
-          })}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="p-4 border-t border-slate-100 bg-slate-50/75 flex flex-col gap-2">
         <div className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-500 px-1">
           <UserCheck className="w-3.5 h-3.5 text-slate-400" />
           <span>ACTIVE ACCOUNT</span>
+          {isImpersonating && (
+            <span className="ml-auto text-[9px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded uppercase tracking-wider">Impersonating</span>
+          )}
         </div>
         <div className="flex items-center gap-2.5 bg-white p-2 rounded-lg border border-slate-150 shadow-2xs">
           <div className={`w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0 ${
@@ -122,4 +146,3 @@ export default function Sidebar({
     </aside>
   );
 }
-

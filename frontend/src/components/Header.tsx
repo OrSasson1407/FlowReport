@@ -12,7 +12,8 @@ import {
   Info, 
   Inbox,
   Lock,
-  Unlock
+  Unlock,
+  LogOut
 } from 'lucide-react';
 import { User, ReportCycle, AppNotification } from '../types';
 
@@ -25,6 +26,7 @@ interface HeaderProps {
   onMarkNotificationRead: (id: string) => void;
   onMarkAllNotificationsRead: () => void;
   onClearNotifications: () => void;
+  onLogout: () => void;
 }
 
 export default function Header({
@@ -36,6 +38,7 @@ export default function Header({
   onMarkNotificationRead,
   onMarkAllNotificationsRead,
   onClearNotifications,
+  onLogout,
 }: HeaderProps) {
   const [timeLeft, setTimeLeft] = useState('06h 22m 14s');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -172,6 +175,16 @@ export default function Header({
             </span>
           </div>
         </div>
+
+        {/* Logout */}
+        <button
+          onClick={onLogout}
+          className="p-2 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg border border-slate-200 transition-all duration-200 focus:outline-none"
+          aria-label="Log out"
+          title="Log out"
+        >
+          <LogOut className="w-4 h-4" />
+        </button>
 
         {/* Notification Bell Dropdown */}
         <div className="relative" ref={dropdownRef} id="notification-center-trigger">
