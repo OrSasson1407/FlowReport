@@ -191,3 +191,96 @@ func (h *Handler) Impersonate(c *gin.Context) {
     target.Password = ""
     c.JSON(http.StatusOK, ImpersonateResponse{Token: signed, User: target})
 }
+func (h *Handler) wouldCreateCycle(userID, newManagerID uuid.UUID) bool {
+    currentID := newManagerID
+    visited := map[uuid.UUID]bool{}
+    for {
+        if currentID == userID {
+            return true
+        }
+        if visited[currentID] {
+            return false
+        }
+        visited[currentID] = true
+        var current models.User
+        if err := h.db.Select("manager_id").First(&current, "id = ?", currentID).Error; err != nil {
+            return false
+        }
+        if current.ManagerID == nil {
+            return false
+        }
+        currentID = *current.ManagerID
+    }
+}
+
+type UpdateUserRequest struct {
+    Role       *models.UserRole `json:"role"`
+    Title      *string          `json:"title"`
+    Department *string          `json:"department"`
+    ManagerID  *string          `json:"manager_id"`
+    IsActive   *bool            `json:"is_active"`
+}
+
+// Update is an admin-only endpoint (CEO/ADMIN) for editing org-tree structure:
+// reassigning a manager, changing role/department, or deactivating a user.
+// Per REQ-4.1.1, any manager_id change is validated with a DFS walk up the
+// existing chain to reject moves that would create a circular reporting loop.
+func (h *Handler) Update(c *gin.Context) {
+    actorRole, _ := c.Get("user_role")
+    if actorRole.(string) != string(models.RoleCEO) && actorRole.(string) != string(models.RoleAdmin) {
+        c.JSON(http.StatusForbidden, gin.H{"error": "only CEO or ADMIN can update org structure"})
+        return
+    }
+    targetID, err := uuid.Parse(c.Param("id"))
+    if err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user id"})
+        return
+    }
+    var target models.User
+    if err := h.db.First(&target, "id = ?", targetID).Error; err != nil {
+        c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
+        return
+    }
+    var req UpdateUserRequest
+    if err := c.ShouldBindJSON(&req); err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+        return
+    }
+    if req.ManagerID != nil {
+        if *req.ManagerID == "" {
+            target.ManagerID = nil
+        } else {
+            newManagerID, err := uuid.Parse(*req.ManagerID)
+            if err != nil {
+                c.JSON(http.StatusBadRequest, gin.H{"error": "invalid manager_id"})
+                return
+            }
+            if newManagerID == targetID {
+                c.JSON(http.StatusUnprocessableEntity, gin.H{"error": "a user cannot manage themselves"})
+                return
+            }
+            if h.wouldCreateCycle(targetID, newManagerID) {
+                c.JSON(http.StatusUnprocessableEntity, gin.H{"error": "this assignment would create a circular reporting loop"})
+                return
+            }
+            target.ManagerID = &newManagerID
+        }
+    }
+    if req.Role != nil {
+        target.Role = *req.Role
+    }
+    if req.Title != nil {
+        target.Title = *req.Title
+    }
+    if req.Department != nil {
+        target.Department = *req.Department
+    }
+    if req.IsActive != nil {
+        target.IsActive = *req.IsActive
+    }
+    if err := h.db.Save(&target).Error; err != nil {
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update user"})
+        return
+    }
+    c.JSON(http.StatusOK, target)
+}

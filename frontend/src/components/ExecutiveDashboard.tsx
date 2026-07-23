@@ -1,6 +1,7 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { TrendingUp, AlertOctagon, Download, Lock, ShieldAlert, Mail, Layers, ExternalLink, Calendar, Users, BarChart3, Clock } from 'lucide-react';
 import { DepartmentMetrics, EscalatedBlocker } from '../types';
+import { downloadMetricsXLSX } from '../api/export';
 
 interface ExecutiveDashboardProps {
   departmentMetrics: DepartmentMetrics[];
@@ -290,13 +291,11 @@ export default function ExecutiveDashboard({
               </button>
 
               <button
-                disabled
-                title="Export is not implemented yet"
-                className="w-full bg-slate-100 text-slate-400 border border-slate-200 font-semibold text-xs py-2.5 px-4 rounded-lg flex items-center justify-center gap-2 cursor-not-allowed"
+                onClick={() => downloadMetricsXLSX().catch((err) => alert(err.message))}
+                className="w-full bg-[#1e3a8a] text-white border border-[#1e3a8a] font-semibold text-xs py-2.5 px-4 rounded-lg flex items-center justify-center gap-2 hover:bg-[#1e40af] transition-colors cursor-pointer"
               >
                 <Download className="w-4 h-4" />
                 <span>Export Excel Metric Database (XLSX)</span>
-                <span className="text-[9px] uppercase tracking-wider bg-slate-200 text-slate-500 px-1.5 py-0.5 rounded">Coming soon</span>
               </button>
             </div>
           </div>

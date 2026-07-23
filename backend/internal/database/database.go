@@ -1,4 +1,4 @@
-﻿package database
+package database
 
 import (
     "fmt"
@@ -33,5 +33,6 @@ func Migrate(db *gorm.DB) error {
         &models.Report{},
         &models.Notification{},
         &models.AuditLog{},
+        &models.Attachment{},
     )
 }

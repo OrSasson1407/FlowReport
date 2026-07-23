@@ -121,3 +121,19 @@ func (n *Notification) BeforeCreate(tx *gorm.DB) error {
     }
     return nil
 }
+type Attachment struct {
+    ID         uuid.UUID `gorm:"type:uuid;primaryKey" json:"id"`
+    ReportID   uuid.UUID `gorm:"type:uuid;not null;index" json:"report_id"`
+    FileName   string    `gorm:"not null" json:"file_name"`
+    FilePath   string    `gorm:"not null" json:"-"`
+    FileSize   int64     `json:"file_size"`
+    UploadedBy uuid.UUID `gorm:"type:uuid;not null" json:"uploaded_by"`
+    CreatedAt  time.Time `json:"created_at"`
+}
+
+func (a *Attachment) BeforeCreate(tx *gorm.DB) error {
+    if a.ID == uuid.Nil {
+        a.ID = uuid.New()
+    }
+    return nil
+}

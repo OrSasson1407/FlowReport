@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Save, Send, Paperclip, Plus, Trash2, HelpCircle, FileCheck, CheckCircle2, AlertTriangle, Eye, Edit3 } from 'lucide-react';
 import { Report, User } from '../types';
+import { attachmentsApi, Attachment } from '../api/attachments';
 
 interface EmployeeDashboardProps {
   report: Report;
@@ -26,7 +27,7 @@ export default function EmployeeDashboard({
   // Jira & Attachment states
   const [jiraRefs, setJiraRefs] = useState<string[]>(report.jiraReferences || []);
   const [newJira, setNewJira] = useState('');
-  const [attachments, setAttachments] = useState<string[]>(report.attachments || []);
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [isUploading, setIsUploading] = useState(false);
 
   // Auto-save feedback state
@@ -40,8 +41,13 @@ export default function EmployeeDashboard({
     setBlockers(report.blockersContent || '');
     setPlans(report.plansContent);
     setJiraRefs(report.jiraReferences || []);
-    setAttachments(report.attachments || []);
   }, [report]);
+
+  // Real attachment list, fetched from the backend (replaces the old
+  // mock-era array of bare filenames that was never actually persisted).
+  useEffect(() => {
+    attachmentsApi.list(report.id).then((res) => setAttachments(res.data)).catch(() => setAttachments([]));
+  }, [report.id]);
 
   // Simulated Autosave loop (every 15 seconds of typing activity)
   useEffect(() => {
@@ -55,7 +61,6 @@ export default function EmployeeDashboard({
           blockersContent: blockers,
           plansContent: plans,
           jiraReferences: jiraRefs,
-          attachments: attachments,
           updatedAt: new Date().toISOString(),
         });
         setAutosaveMessage('Auto-saved to draft (local cache)');
@@ -68,15 +73,14 @@ export default function EmployeeDashboard({
         workingOn !== report.workingOnContent ||
         blockers !== report.blockersContent ||
         plans !== report.plansContent ||
-        jiraRefs.length !== (report.jiraReferences?.length || 0) ||
-        attachments.length !== (report.attachments?.length || 0)
+        jiraRefs.length !== (report.jiraReferences?.length || 0)
       ) {
         handleAutosave();
       }
     }, 2500);
 
     return () => clearTimeout(delayDebounce);
-  }, [completed, workingOn, blockers, plans, jiraRefs, attachments]);
+  }, [completed, workingOn, blockers, plans, jiraRefs]);
 
   // Manual save handler
   const handleManualSave = () => {
@@ -88,7 +92,6 @@ export default function EmployeeDashboard({
       blockersContent: blockers,
       plansContent: plans,
       jiraReferences: jiraRefs,
-      attachments: attachments,
       updatedAt: new Date().toISOString(),
     });
     setTimeout(() => {
@@ -113,21 +116,28 @@ export default function EmployeeDashboard({
     setJiraRefs(jiraRefs.filter((ref) => ref !== ticket));
   };
 
-  // Simulate File Upload
+  // Real file upload — persisted to backend disk storage, capped at 50MB
+  // server-side per PRD FR-W-002.
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) return;
     const file = e.target.files[0];
     setIsUploading(true);
-    setTimeout(() => {
-      setAttachments([...attachments, file.name]);
-      setIsUploading(false);
-      setAutosaveMessage(`Attached ${file.name}`);
-    }, 1200);
+    attachmentsApi
+      .upload(report.id, file)
+      .then((newAttachment) => {
+        setAttachments((prev) => [...prev, newAttachment]);
+        setAutosaveMessage(`Attached ${file.name}`);
+      })
+      .catch((err) => setAutosaveMessage(`Upload failed: ${err.message}`))
+      .finally(() => setIsUploading(false));
   };
 
   // Remove Attachment
-  const handleRemoveAttachment = (fileName: string) => {
-    setAttachments(attachments.filter((file) => file !== fileName));
+  const handleRemoveAttachment = (attachmentId: string) => {
+    attachmentsApi
+      .remove(attachmentId)
+      .then(() => setAttachments((prev) => prev.filter((file) => file.id !== attachmentId)))
+      .catch((err) => setAutosaveMessage(`Remove failed: ${err.message}`));
   };
 
   // Helper to parse markdown-like lists into beautiful components
@@ -505,15 +515,19 @@ export default function EmployeeDashboard({
             <div className="flex flex-col gap-1.5">
               {attachments.length > 0 ? (
                 attachments.map((file) => (
-                  <div key={file} className="flex items-center justify-between bg-slate-50 px-2.5 py-2 rounded border border-slate-150">
-                    <div className="flex items-center gap-2 truncate">
+                  <div key={file.id} className="flex items-center justify-between bg-slate-50 px-2.5 py-2 rounded border border-slate-150">
+                    <button
+                      type="button"
+                      onClick={() => attachmentsApi.download(file.id, file.file_name)}
+                      className="flex items-center gap-2 truncate text-left"
+                    >
                       <Paperclip className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                      <span className="text-[11px] font-medium text-slate-600 truncate">{file}</span>
-                    </div>
+                      <span className="text-[11px] font-medium text-slate-600 truncate hover:underline">{file.file_name}</span>
+                    </button>
                     {report.status !== 'APPROVED' && report.status !== 'SUBMITTED' && (
                       <button
                         type="button"
-                        onClick={() => handleRemoveAttachment(file)}
+                        onClick={() => handleRemoveAttachment(file.id)}
                         className="text-slate-400 hover:text-red-500 p-0.5 rounded cursor-pointer"
                       >
                         <Trash2 className="w-3.5 h-3.5" />

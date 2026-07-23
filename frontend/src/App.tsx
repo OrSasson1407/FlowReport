@@ -210,7 +210,7 @@ export default function App() {
 
   const handleRequestRevision = async (reportId: string, comments: string) => {
     try {
-      await reportsApi.update(reportId, { comments });
+      await reportsApi.requestRevision(reportId, comments);
       setManagerReports((prev) => prev.map((r) => r.id === reportId ? { ...r, status: "REVISION_REQUESTED" as const, comments } : r));
       await addNotification("WARNING", "Revision Requested", "Revision requested.");
     } catch (e: any) {

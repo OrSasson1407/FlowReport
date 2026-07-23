@@ -8,6 +8,8 @@ import (
     "github.com/flowreport/backend/internal/cache"
     "github.com/flowreport/backend/internal/cycle"
     "github.com/flowreport/backend/internal/email"
+    "github.com/flowreport/backend/internal/attachment"
+    "github.com/flowreport/backend/internal/export"
     "github.com/flowreport/backend/internal/metrics"
     "github.com/flowreport/backend/internal/middleware"
     "github.com/flowreport/backend/internal/notification"
@@ -43,6 +45,8 @@ func New(db *gorm.DB, redisCache *cache.Cache, emailSvc *email.Service, jwtSecre
     metricsHandler := metrics.NewHandler(db)
     notificationHandler := notification.NewHandler(db)
     cycleHandler := cycle.NewHandler(db)
+    exportHandler := export.NewHandler(db)
+    attachmentHandler := attachment.NewHandler(db)
     auditHandler := auditlog.NewHandler(db)
 
     v1 := r.Group("/v1")
@@ -62,6 +66,7 @@ func New(db *gorm.DB, redisCache *cache.Cache, emailSvc *email.Service, jwtSecre
                 users.GET("/me", userHandler.Me)
                 users.GET("/:id", userHandler.Get)
                 users.POST("", userHandler.Create)
+                users.PATCH("/:id", userHandler.Update)
                 users.POST("/:id/impersonate", userHandler.Impersonate)
             }
             reports := protected.Group("/reports")
@@ -72,6 +77,9 @@ func New(db *gorm.DB, redisCache *cache.Cache, emailSvc *email.Service, jwtSecre
                 reports.PATCH("/:id", reportHandler.Update)
                 reports.POST("/:id/submit", reportHandler.Submit)
                 reports.POST("/:id/approve", reportHandler.Approve)
+                reports.POST("/:id/reject", reportHandler.RequestRevision)
+                reports.POST("/:id/attachments", attachmentHandler.Upload)
+                reports.GET("/:id/attachments", attachmentHandler.List)
             }
             metricsRoutes := protected.Group("/metrics")
             {
@@ -79,6 +87,15 @@ func New(db *gorm.DB, redisCache *cache.Cache, emailSvc *email.Service, jwtSecre
                 metricsRoutes.GET("/org-health", metricsHandler.OrgHealth)
                 metricsRoutes.GET("/cycle-history", metricsHandler.CycleHistory)
                 metricsRoutes.GET("/blockers", metricsHandler.EscalatedBlockers)
+            }
+            exportRoutes := protected.Group("/export")
+            {
+                exportRoutes.GET("/metrics.xlsx", exportHandler.MetricsXLSX)
+            }
+            attachmentRoutes := protected.Group("/attachments")
+            {
+                attachmentRoutes.GET("/:id", attachmentHandler.Download)
+                attachmentRoutes.DELETE("/:id", attachmentHandler.Delete)
             }
             notifications := protected.Group("/notifications")
             {

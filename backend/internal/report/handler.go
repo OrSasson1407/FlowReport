@@ -281,3 +281,61 @@ func (h *Handler) Approve(c *gin.Context) {
 
     c.JSON(http.StatusOK, report)
 }
+func (h *Handler) RequestRevision(c *gin.Context) {
+    id, err := uuid.Parse(c.Param("id"))
+    if err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "invalid report id"})
+        return
+    }
+    userIDStr, _ := c.Get("user_id")
+    userRole, _  := c.Get("user_role")
+    userID, _ := uuid.Parse(userIDStr.(string))
+    var req struct {
+        Comments string `json:"comments" binding:"required"`
+    }
+    if err := c.ShouldBindJSON(&req); err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "comments are required"})
+        return
+    }
+    var report models.Report
+    if err := h.db.First(&report, "id = ?", id).Error; err != nil {
+        c.JSON(http.StatusNotFound, gin.H{"error": "report not found"})
+        return
+    }
+    switch userRole.(string) {
+    case string(models.RoleCEO), string(models.RoleAdmin), string(models.RoleDirector):
+    case string(models.RoleManager):
+        var owner models.User
+        h.db.First(&owner, "id = ?", report.UserID)
+        if owner.ManagerID == nil || *owner.ManagerID != userID {
+            c.JSON(http.StatusForbidden, gin.H{"error": "you can only request revisions on your direct reports"})
+            return
+        }
+    default:
+        c.JSON(http.StatusForbidden, gin.H{"error": "only managers can request revisions"})
+        return
+    }
+    if report.Status != models.StatusSubmitted {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "only submitted reports can be sent back for revision"})
+        return
+    }
+    report.Status = models.StatusRevisionRequested
+    report.Comments = req.Comments
+    if err := h.db.Save(&report).Error; err != nil {
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to request revision"})
+        return
+    }
+
+    go func() {
+        var owner models.User
+        if err := h.db.First(&owner, "id = ?", report.UserID).Error; err == nil {
+            var cycle models.ReportCycle
+            if err := h.db.First(&cycle, "id = ?", report.CycleID).Error; err == nil {
+                weekNum := strconv.Itoa(cycle.WeekNum)
+                h.email.SendRevisionRequested(owner.Email, owner.FirstName, weekNum, req.Comments)
+            }
+        }
+    }()
+
+    c.JSON(http.StatusOK, report)
+}
